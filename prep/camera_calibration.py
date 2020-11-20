@@ -75,6 +75,8 @@ class CameraCalibration:
         # When everything done, release the capture
         cap.release()
         cv.destroyAllWindows()
+        # Prevents freezing when closing the window for some reason
+        cv.waitKey(1)
 
         self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = cv.calibrateCamera(
             self.objpoints, self.imgpoints, gray_frame.shape[::-1], None, None)
