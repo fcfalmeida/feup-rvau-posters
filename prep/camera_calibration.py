@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 import time
-
+from tkinter import Tk
 
 class CameraCalibration:
     # Number of images that should be captured for calibration
@@ -22,7 +22,12 @@ class CameraCalibration:
         self.rvecs = None
         self.tvecs = None
 
+        self.root = None
+
     def start(self):
+        self.root = Tk()
+        self.root.withdraw()
+
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
         objp = np.zeros((self.cbrows * self.cbcols, 3), np.float32)
         objp[:, :2] = np.mgrid[0:self.cbrows, 0:self.cbcols].T.reshape(-1, 2)
@@ -70,13 +75,19 @@ class CameraCalibration:
                 t = time.time()
 
             cv.imshow('Calibration', frame)
-            cv.waitKey(1)
+
+            if cv.waitKey(1) == ord('q'):
+                self._stop(cap)
+                return
 
         # When everything done, release the capture
+        self._stop(cap)
+
+        self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = cv.calibrateCamera(
+            self.objpoints, self.imgpoints, gray_frame.shape[::-1], None, None)
+
+    def _stop(self, cap):
         cap.release()
         cv.destroyAllWindows()
         # Prevents freezing when closing the window for some reason
         cv.waitKey(1)
-
-        self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = cv.calibrateCamera(
-            self.objpoints, self.imgpoints, gray_frame.shape[::-1], None, None)
