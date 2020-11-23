@@ -4,9 +4,10 @@ from prep.menu.menu_item import MenuItem
 from prep.menu.back_item import BackItem
 from prep.menu.menu_borders import MenuBorders
 
+
 class Menu(MenuItem):
 
-    def __init__(self, title, refresh_fun = None):
+    def __init__(self, title, refresh_fun=None):
         self.title = title
         self.items = []
         self.refresh_fun = refresh_fun
@@ -34,20 +35,27 @@ class Menu(MenuItem):
             if self.refresh_fun is not None:
                 self.items = self.refresh_fun()
                 self.items.append(BackItem(self.parent))
-        
+
             # Menu Top
             print(self.borders.top_left_corner, end='')
             print(self.borders.horizontal_border * 39, end='')
             print(self.borders.top_right_corner)
-            print("{0:39} {1}".format(self.borders.vertical_border, self.borders.vertical_border))
+            print("{0} {1} {2}".format(self.borders.vertical_border,
+                                       self.title.center(37), self.borders.vertical_border))
+            print("{0} {1} {2}".format(self.borders.vertical_border,
+                                       '='*37, self.borders.vertical_border))
+            print("{0} {1:37} {2}".format(self.borders.vertical_border,
+                                       '', self.borders.vertical_border))
 
             # Menu Items
             for i in range(len(self.items)):
                 item = self.items[i]
-                print("{0} {1:2} - {2:33}{0}".format(self.borders.vertical_border, i+1, item.title))
+                print(
+                    "{0} {1:2} - {2:33}{0}".format(self.borders.vertical_border, i+1, item.title))
 
             # Menu Bottom
-            print("{0:39} {1}".format(self.borders.vertical_border, self.borders.vertical_border))
+            print("{0:39} {1}".format(
+                self.borders.vertical_border, self.borders.vertical_border))
             print(self.borders.bottom_left_corner, end='')
             print(self.borders.horizontal_border * 39, end='')
             print(self.borders.bottom_right_corner)
