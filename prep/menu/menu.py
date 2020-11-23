@@ -1,5 +1,8 @@
+import platform
+import subprocess
 from prep.menu.menu_item import MenuItem
 from prep.menu.back_item import BackItem
+from prep.menu.menu_borders import MenuBorders
 
 class Menu(MenuItem):
 
@@ -8,6 +11,7 @@ class Menu(MenuItem):
         self.items = []
         self.refresh_fun = refresh_fun
         self.parent = None
+        self.borders = MenuBorders()
 
     def add_item(self, item):
         self.items.append(item)
@@ -25,17 +29,38 @@ class Menu(MenuItem):
 
     def show(self):
         while True:
+            self.clear()
+
             if self.refresh_fun is not None:
                 self.items = self.refresh_fun()
-                self.items.append(BackItem(self.parent)) 
+                self.items.append(BackItem(self.parent))
         
+            # Menu Top
+            print(self.borders.top_left_corner, end='')
+            print(self.borders.horizontal_border * 39, end='')
+            print(self.borders.top_right_corner)
+            print("{0:39} {1}".format(self.borders.vertical_border, self.borders.vertical_border))
+
+            # Menu Items
             for i in range(len(self.items)):
                 item = self.items[i]
-                print("%2d - %s" % (i + 1, item.title))
+                print("{0} {1:2} - {2:33}{0}".format(self.borders.vertical_border, i+1, item.title))
 
-            option = int(input("Select an Option > ")) - 1
+            # Menu Bottom
+            print("{0:39} {1}".format(self.borders.vertical_border, self.borders.vertical_border))
+            print(self.borders.bottom_left_corner, end='')
+            print(self.borders.horizontal_border * 39, end='')
+            print(self.borders.bottom_right_corner)
+
+            option = int(input(" Select an Option >> ")) - 1
             sel_item = self.items[option]
             sel_item.action()
+
+    def clear(self):
+        if platform.system() == 'Windows':
+            subprocess.check_call('cls', shell=True)
+        else:
+            print(subprocess.check_output('clear').decode())
 
     def action(self):
         self.show()
