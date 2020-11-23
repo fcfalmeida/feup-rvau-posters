@@ -2,6 +2,7 @@ import cv2 as cv
 import pickle
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
+from prep.menu import FunctionItem
 
 class Database:
 
@@ -37,6 +38,17 @@ class Database:
         self.data.append((filename, film_name, film_score))
 
         self._save()
+
+    def list_images(self):
+        items = []
+        for file_name, _, _ in self.data:
+            item = FunctionItem(file_name, self.remove_image, [file_name])
+            items.append(item)
+
+        return items
+
+    def remove_image(self, img_name):
+        print(f"Remove img {img_name}")
 
     def _load(self):
         try:

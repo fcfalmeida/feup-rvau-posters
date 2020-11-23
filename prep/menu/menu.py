@@ -3,13 +3,17 @@ from prep.menu.back_item import BackItem
 
 class Menu(MenuItem):
 
-    def __init__(self, title):
+    def __init__(self, title, refresh_fun = None):
         self.title = title
         self.items = []
+        self.refresh_fun = refresh_fun
         self.parent = None
 
     def add_item(self, item):
         self.items.append(item)
+
+    def add_items(self, items):
+        self.items.extend(items)
 
     def add_menu(self, menu):
         menu.set_parent(self)
@@ -20,6 +24,10 @@ class Menu(MenuItem):
         self.items.append(BackItem(parent))
 
     def show(self):
+        if self.refresh_fun is not None:
+            self.items = self.refresh_fun()
+            self.items.append(BackItem(self.parent)) #re-append back item
+
         while True:
             for i in range(len(self.items)):
                 item = self.items[i]
