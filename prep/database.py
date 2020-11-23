@@ -1,5 +1,7 @@
 import cv2 as cv
 import pickle
+import os
+import glob
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from prep.menu import FunctionItem
@@ -35,20 +37,40 @@ class Database:
         cv.imwrite(self.DB_DIR + film_name + "_down" + self.SAVE_EXTENSION, down_img)
         cv.imwrite(self.DB_DIR + film_name + "_left" + self.SAVE_EXTENSION, left_img)
 
-        self.data.append((filename, film_name, film_score))
+        self.data.append((film_name, film_score))
 
         self._save()
 
     def list_images(self):
         items = []
-        for file_name, _, _ in self.data:
-            item = FunctionItem(file_name, self.remove_image, [file_name])
+        for film_name, _ in self.data:
+            item = FunctionItem(film_name, self.remove_image, [film_name])
             items.append(item)
 
         return items
 
-    def remove_image(self, img_name):
-        print(f"Remove img {img_name}")
+    def remove_image(self, film_name):
+        images = []
+
+        images.append(glob.glob(f"{self.DB_DIR}{film_name}_up.*")[0])
+        images.append(glob.glob(f"{self.DB_DIR}{film_name}_right.*")[0])
+        images.append(glob.glob(f"{self.DB_DIR}{film_name}_down.*")[0])
+        images.append(glob.glob(f"{self.DB_DIR}{film_name}_left.*")[0])
+
+        for image in images:
+            try:
+                os.remove(image)
+            except:
+                pass
+
+        self._remove_film(film_name)
+
+    def _remove_film(self, name):
+        for film in self.data:
+            if film[0] == name:
+                self.data.remove(film)
+
+        self._save()
 
     def _load(self):
         try:

@@ -24,11 +24,11 @@ class Menu(MenuItem):
         self.items.append(BackItem(parent))
 
     def show(self):
-        if self.refresh_fun is not None:
-            self.items = self.refresh_fun()
-            self.items.append(BackItem(self.parent)) #re-append back item
-
         while True:
+            if self.refresh_fun is not None:
+                self.items = self.refresh_fun()
+                self.items.append(BackItem(self.parent)) 
+        
             for i in range(len(self.items)):
                 item = self.items[i]
                 print("%2d - %s" % (i + 1, item.title))
