@@ -27,13 +27,13 @@ class Database:
         down_img = cv.rotate(up_img, cv.ROTATE_180)
         left_img = cv.rotate(up_img, cv.ROTATE_90_COUNTERCLOCKWISE)
 
-        cv.imwrite(self.DB_DIR + img_name + "_up" + self.SAVE_EXTENSION, up_img)
-        cv.imwrite(self.DB_DIR + img_name + "_right" + self.SAVE_EXTENSION, right_img)
-        cv.imwrite(self.DB_DIR + img_name + "_down" + self.SAVE_EXTENSION, down_img)
-        cv.imwrite(self.DB_DIR + img_name + "_left" + self.SAVE_EXTENSION, left_img)
-
         film_name = input("Film Name > ")
         film_score = int(input("Film Score > "))
+
+        cv.imwrite(self.DB_DIR + film_name + "_up" + self.SAVE_EXTENSION, up_img)
+        cv.imwrite(self.DB_DIR + film_name + "_right" + self.SAVE_EXTENSION, right_img)
+        cv.imwrite(self.DB_DIR + film_name + "_down" + self.SAVE_EXTENSION, down_img)
+        cv.imwrite(self.DB_DIR + film_name + "_left" + self.SAVE_EXTENSION, left_img)
 
         self.data.append((filename, film_name, film_score))
 
