@@ -1,13 +1,17 @@
 import cv2 as cv
 import numpy as np
 import time
+import pickle
 from tkinter import Tk
+from prep.calibration_params import CalibrationParams
 
 class CameraCalibration:
     # Number of images that should be captured for calibration
     NUM_CALIB_IMAGES = 10
     # Time interval between each image capture (seconds)
     CAPTURE_INTERVAL = 1
+    # File in which calibration params are persisted
+    PERSISTENCE_FILE = "calib.p"
 
     def __init__(self, cbrows=9, cbcols=6):
         self.cbrows = cbrows
@@ -16,13 +20,12 @@ class CameraCalibration:
         self.imgpoints = []
         self.criteria = (cv.TERM_CRITERIA_EPS +
                          cv.TERM_CRITERIA_MAX_ITER, self.NUM_CALIB_IMAGES, 0.001)
-        self.ret = None
-        self.mtx = None
-        self.dist = None
-        self.rvecs = None
-        self.tvecs = None
+        
+        self.calibration_params = None
 
         self.root = None
+
+        self._load()
 
     def start(self):
         self.root = Tk()
@@ -83,11 +86,25 @@ class CameraCalibration:
         # When everything done, release the capture
         self._stop(cap)
 
-        self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = cv.calibrateCamera(
+        ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
             self.objpoints, self.imgpoints, gray_frame.shape[::-1], None, None)
+
+        self.calibration_params = CalibrationParams(ret, mtx, dist, rvecs, tvecs)
+        self._save()
 
     def _stop(self, cap):
         cap.release()
         cv.destroyAllWindows()
         # Prevents freezing when closing the window for some reason
         cv.waitKey(1)
+
+    def _save(self):
+        pickle.dump(self.calibration_params, open(self.PERSISTENCE_FILE, "wb"))
+
+    def _load(self):
+        try:
+            self.calibration_params = pickle.load(open(self.PERSISTENCE_FILE, "rb"))
+            print(self.calibration_params)
+        except FileNotFoundError:
+            pass
+
