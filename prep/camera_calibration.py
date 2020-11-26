@@ -55,6 +55,8 @@ class CameraCalibration:
             gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
             if time.time() - t >= self.CAPTURE_INTERVAL:
+                # Draw an indicator each time we try to capture an image of the chessboard
+                cv.circle(frame, (20,20), 10, (0,0,255), -1)
                 if img_count == self.NUM_CALIB_IMAGES:
                     break
 
@@ -91,6 +93,8 @@ class CameraCalibration:
 
         self.calibration_params = CalibrationParams(ret, mtx, dist, rvecs, tvecs)
         self._save()
+
+        print(f"Camera calibration done. Parameters saved in {self.PERSISTENCE_FILE}")
 
     def _stop(self, cap):
         cap.release()
