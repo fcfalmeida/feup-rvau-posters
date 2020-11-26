@@ -24,18 +24,12 @@ class Database:
 
         img_name = filename.split("/")[-1].split(".")[-2]
 
-        up_img = cv.imread(filename)
-        right_img = cv.rotate(up_img, cv.ROTATE_90_CLOCKWISE)
-        down_img = cv.rotate(up_img, cv.ROTATE_180)
-        left_img = cv.rotate(up_img, cv.ROTATE_90_COUNTERCLOCKWISE)
+        img = cv.imread(filename)
 
         film_name = input(" Film Name >> ")
         film_score = int(input(" Film Score >> "))
 
-        cv.imwrite(self.DB_DIR + film_name + "_up" + self.SAVE_EXTENSION, up_img)
-        cv.imwrite(self.DB_DIR + film_name + "_right" + self.SAVE_EXTENSION, right_img)
-        cv.imwrite(self.DB_DIR + film_name + "_down" + self.SAVE_EXTENSION, down_img)
-        cv.imwrite(self.DB_DIR + film_name + "_left" + self.SAVE_EXTENSION, left_img)
+        cv.imwrite(self.DB_DIR + film_name + self.SAVE_EXTENSION, img)
 
         self.data.append((film_name, film_score))
 
@@ -50,18 +44,12 @@ class Database:
         return items
 
     def remove_image(self, film_name):
-        images = []
+        image = glob.glob(f"{self.DB_DIR}{film_name}.*")[0]
 
-        images.append(glob.glob(f"{self.DB_DIR}{film_name}_up.*")[0])
-        images.append(glob.glob(f"{self.DB_DIR}{film_name}_right.*")[0])
-        images.append(glob.glob(f"{self.DB_DIR}{film_name}_down.*")[0])
-        images.append(glob.glob(f"{self.DB_DIR}{film_name}_left.*")[0])
-
-        for image in images:
-            try:
-                os.remove(image)
-            except:
-                pass
+        try:
+            os.remove(image)
+        except:
+            pass
 
         self._remove_film(film_name)
 
