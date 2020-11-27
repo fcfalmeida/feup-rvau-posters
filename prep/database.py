@@ -5,6 +5,7 @@ import glob
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from prep.menu import FunctionItem
+from prep.film import Film
 
 class Database:
 
@@ -31,14 +32,15 @@ class Database:
 
         cv.imwrite(self.DB_DIR + film_name + self.SAVE_EXTENSION, img)
 
-        self.data.append((film_name, film_score))
+        film = Film(film_name, film_score, None, None)
+        self.data.append(film)
 
         self._save()
 
     def list_images(self):
         items = []
-        for film_name, _ in self.data:
-            item = FunctionItem(film_name, self.remove_image, [film_name])
+        for film in self.data:
+            item = FunctionItem(film.title, self.remove_image, [film.title])
             items.append(item)
 
         return items
@@ -53,9 +55,9 @@ class Database:
 
         self._remove_film(film_name)
 
-    def _remove_film(self, name):
+    def _remove_film(self, title):
         for film in self.data:
-            if film[0] == name:
+            if film.title == title:
                 self.data.remove(film)
 
         self._save()
