@@ -2,6 +2,7 @@ import cv2 as cv
 import pickle
 import os
 import glob
+import copy
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from prep.menu import FunctionItem
@@ -89,7 +90,7 @@ class Database:
             pass
 
     def _save(self):
-        data = self.data
+        data = self._copy_data()
 
         for film in data:
             film.keypoints = self._serialize_keypoints(film.keypoints)
@@ -122,3 +123,12 @@ class Database:
                             _response=keypoint[3], _octave=keypoint[4], _class_id=keypoint[5]))
 
         return keypoints
+
+    def _copy_data(self):
+        data = []
+
+        for film in self.data:
+            copy = Film(film.title, film.score, film.keypoints, film.descriptors)
+            data.append(copy)
+
+        return data
