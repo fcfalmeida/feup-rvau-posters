@@ -4,16 +4,19 @@ import time
 import pickle
 from tkinter import Tk
 from prep.database import Database
+from prep.camera_calibration import CameraCalibration
 
 
 class Augmentation:
 
     MIN_GOOD_MATCHES = 120
     HESSIAN_THRESHOLD = 400
+    CUBE_SIZE = 200
 
     def __init__(self, cbrows=9, cbcols=6):
         self.root = None
         self.db = Database()
+        self.camera_params = CameraCalibration().calibration_params
 
     def start(self):
         self.root = Tk()
@@ -92,10 +95,13 @@ class Augmentation:
                     scene_corners = cv.perspectiveTransform(obj_corners, H)
 
                     # Top left corner of the poster
-                    top_left_corner = (scene_corners[0, 0, 0], scene_corners[0, 0, 1])
+                    top_left_corner = (
+                        scene_corners[0, 0, 0], scene_corners[0, 0, 1])
 
                     cv.putText(
                         frame, film.title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1, 1)
+
+                    frame = self._display_score(obj_corners, scene_corners, frame)
 
             cv.imshow('Augmentation', frame)
 
@@ -111,3 +117,37 @@ class Augmentation:
         cv.destroyAllWindows()
         # Prevents freezing when closing the window for some reason
         cv.waitKey(1)
+
+    def _display_score(self, obj_corners, scene_corners, frame):
+        size = Augmentation.CUBE_SIZE
+        # Find the rotation and translation vectors.
+        ret, rvecs, tvecs = cv.solvePnP(
+            self._to_3d_points(obj_corners), scene_corners, self.camera_params.mtx, self.camera_params.dist)
+
+        cube = np.float32([[0,0,0], [0,size,0], [size,size,0], [size,0,0],
+                        [0,0,-size],[0,size,-size],[size,size,-size],[size,0,-size] ])
+        # project 3D points to image plane
+        imgpts, jac = cv.projectPoints(cube, rvecs, tvecs, self.camera_params.mtx, self.camera_params.dist)
+
+        return self._draw_cube(frame, scene_corners, imgpts)
+
+
+    def _draw_cube(self, frame, scene_corners, imgpts):
+        imgpts = np.int32(imgpts).reshape(-1,2)
+        # draw ground floor in green
+        img = cv.drawContours(frame, [imgpts[:4]],-1,(255,255,255),2)
+        # draw pillars in blue color
+        for i,j in zip(range(4),range(4,8)):
+            img = cv.line(img, tuple(imgpts[i]), tuple(imgpts[j]),(255,255,255),2)
+        # draw top layer in red color
+        img = cv.drawContours(img, [imgpts[4:]],-1,(255,255,255),2)
+        return img
+
+    def _to_3d_points(self, points2d):
+        points3d = np.empty((4, 1, 3), dtype=np.float32)
+
+        for i in range(len(points2d)):
+            point = points2d[i]
+            points3d[i] = [point[0, 0], point[0, 1], 0]
+
+        return points3d
