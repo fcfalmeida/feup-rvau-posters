@@ -91,7 +91,7 @@ class CameraCalibration:
         ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
             self.objpoints, self.imgpoints, gray_frame.shape[::-1], None, None)
 
-        self.calibration_params = CalibrationParams(ret, mtx, dist, rvecs, tvecs)
+        self.calibration_params = CalibrationParams(ret, mtx, dist)
         self._save()
 
         print(f"Camera calibration done. Parameters saved in {self.PERSISTENCE_FILE}")
