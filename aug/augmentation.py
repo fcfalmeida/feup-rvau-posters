@@ -104,6 +104,7 @@ class Augmentation:
                     top_left_corner = (
                         scene_corners[0, 0, 0], scene_corners[0, 0, 1])
 
+                    # Display the name of the film on the poster's top left corner
                     cv.putText(
                         frame, film.title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1, 1)
 
@@ -126,15 +127,22 @@ class Augmentation:
         cv.waitKey(1)
 
     def _display_score(self, obj_corners, scene_corners, frame, score):
+        # Calculate the poster's width by subtracting the x coordinate of the top right and top left corner
         poster_width = obj_corners[1, 0, 0] - obj_corners[0, 0, 0]
+        # Calculate the poster's height by subtracting the y coordinate of the bottom left and top left corner
         poster_height = obj_corners[3, 0, 1] - obj_corners[0, 0, 1]
 
         size = Augmentation.CUBE_SIZE
 
+        # Offsets to ensure the cubes are displayed on the center of the poster
         x_offset = poster_width / 2 - size / 2
         y_offset = poster_height / 2 - size / 2
 
-        # Find the rotation and translation vectors.
+        """
+        Find the rotation and translation vectors.
+        Here we convert the object's corner's coordinates to 3d points and we assume z = 0
+        Since solvePnP expects 3d points
+        """
         ret, rvecs, tvecs = cv.solvePnP(
             self._to_3d_points(obj_corners), scene_corners, self.camera_params.mtx, self.camera_params.dist)
 
@@ -142,13 +150,13 @@ class Augmentation:
 
     def _draw_cube(self, frame, cubepts):
         cubepts = np.int32(cubepts).reshape(-1, 2)
-        # draw ground floor in green
+        # draw bottom layer
         img = cv.drawContours(frame, [cubepts[:4]], -1, (255, 255, 255), 2)
-        # draw pillars in blue color
+        # draw pillars
         for i, j in zip(range(4), range(4, 8)):
             img = cv.line(img, tuple(cubepts[i]), tuple(
                 cubepts[j]), (255, 255, 255), 2)
-        # draw top layer in red color
+        # draw top layer
         img = cv.drawContours(img, [cubepts[4:]], -1, (255, 255, 255), 2)
         return img
 
@@ -156,6 +164,7 @@ class Augmentation:
         size = Augmentation.CUBE_SIZE
 
         for i in range(score):
+            # Translate each cube upwards, leaving CUBE_Z_OFFSET distance between them
             z_offset = -(size + Augmentation.CUBE_Z_OFFSET) * i
             cube = np.float32([[x_offset, y_offset, z_offset], [x_offset, y_offset+size, z_offset], [x_offset+size, y_offset+size, z_offset], [x_offset+size, y_offset, z_offset],
                                [x_offset, y_offset, -size+z_offset], [x_offset, y_offset+size, -size+z_offset], [x_offset+size, y_offset+size, -size+z_offset], [x_offset+size, y_offset, -size+z_offset]])
@@ -169,6 +178,9 @@ class Augmentation:
         return frame
 
     def _to_3d_points(self, points2d):
+        """
+        Converts a list of 2d points into a list of 3d points by adding a z = 0 coordinate
+        """
         points3d = np.empty((4, 1, 3), dtype=np.float32)
 
         for i in range(len(points2d)):
