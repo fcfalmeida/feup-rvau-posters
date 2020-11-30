@@ -108,7 +108,6 @@ class CameraCalibration:
     def _load(self):
         try:
             self.calibration_params = pickle.load(open(self.PERSISTENCE_FILE, "rb"))
-            print(self.calibration_params)
         except FileNotFoundError:
             pass
 

@@ -45,7 +45,7 @@ class Database:
     def list_images(self):
         items = []
         for film in self.data:
-            item = FunctionItem(film.title, self.remove_image, [film.title])
+            item = FunctionItem(f"{film.title} ({film.score}\u2605 )", self.remove_image, [film.title])
             items.append(item)
 
         return items
