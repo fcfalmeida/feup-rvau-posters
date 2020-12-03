@@ -3,6 +3,7 @@ import numpy as np
 import time
 import pickle
 from tkinter import Tk
+import aug.utils as utils
 from prep.database import Database
 from prep.camera_calibration import CameraCalibration
 
@@ -68,7 +69,7 @@ class Augmentation:
                     if m.distance < ratio_thresh * n.distance:
                         good_matches.append(m)
 
-                print(f"{film.title}:{len(good_matches)}")
+                utils.tutorial_print(f"{film.title}:{len(good_matches)}")
                 # Try to localize the object only if matches are above a certain value
                 if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
                     # -- Draw matches
