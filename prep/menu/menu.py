@@ -60,9 +60,12 @@ class Menu(MenuItem):
             print(self.borders.horizontal_border * 39, end='')
             print(self.borders.bottom_right_corner)
 
-            option = int(input(" Select an Option >> ")) - 1
-            sel_item = self.items[option]
-            sel_item.action()
+            try:
+                option = int(input(" Select an Option >> ")) - 1
+                sel_item = self.items[option]
+                sel_item.action()
+            except (IndexError, ValueError):
+                print("Invalid Option")
 
     def clear(self):
         if platform.system() == 'Windows':
