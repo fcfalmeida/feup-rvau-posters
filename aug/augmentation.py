@@ -15,7 +15,7 @@ class Augmentation:
     CUBE_SIZE = 200
     CUBE_Z_OFFSET = 50
 
-    def __init__(self, cbrows=9, cbcols=6):
+    def __init__(self):
         self.root = None
         self.db = Database()
         self.camera_params = CameraCalibration().calibration_params
