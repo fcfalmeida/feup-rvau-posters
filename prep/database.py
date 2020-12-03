@@ -99,9 +99,13 @@ class Database:
 
     def _extract_features(self, img):
         minHessian = 400
-        detector = cv.xfeatures2d_SURF.create(hessianThreshold=minHessian)
-        keypoints, descriptors = detector.detectAndCompute(
-            cv.cvtColor(img, cv.COLOR_BGR2GRAY), None)
+        detector = cv.ORB_create()
+
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+        keypoints = detector.detect(img, None)
+        keypoints, descriptors = detector.compute(
+            img, keypoints)
 
         return keypoints, descriptors
 

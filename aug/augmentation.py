@@ -9,8 +9,7 @@ from prep.camera_calibration import CameraCalibration
 
 class Augmentation:
 
-    MIN_GOOD_MATCHES = 120
-    HESSIAN_THRESHOLD = 400
+    MIN_GOOD_MATCHES = 30
     CUBE_SIZE = 200
     CUBE_Z_OFFSET = 50
 
@@ -25,8 +24,8 @@ class Augmentation:
 
         films = self.db.get_films_with_images()
 
-        detector = cv.xfeatures2d_SURF.create(Augmentation.HESSIAN_THRESHOLD)
-        matcher = cv.DescriptorMatcher_create(cv.DescriptorMatcher_FLANNBASED)
+        detector = cv.ORB_create()
+        matcher = cv.DescriptorMatcher_create(cv.DescriptorMatcher_BRUTEFORCE_HAMMING)
 
         cap = cv.VideoCapture(0)
         if not cap.isOpened():
@@ -50,15 +49,15 @@ class Augmentation:
                 keypoints_obj = film.keypoints
                 descriptors_obj = film.descriptors
 
-                keypoints_scene, descriptors_scene = detector.detectAndCompute(
-                    gray_frame, None)
+                keypoints_scene = detector.detect(frame, None)
+                keypoints_scene, descriptors_scene = detector.compute(
+                    gray_frame, keypoints_scene)
 
                 # Check if any descriptors can be found in the scene
                 if descriptors_scene is None:
                     continue
 
-                # -- Step 2: Matching descriptor vectors with a FLANN based matcher
-                # Since SURF is a floating-point descriptor NORM_L2 is used
+                # -- Step 2: Matching descriptor vectors
                 knn_matches = matcher.knnMatch(
                     descriptors_obj, descriptors_scene, 2)
 
