@@ -3,12 +3,13 @@ from aug.options import Options
 from prep.menu import *
 
 aug = Augmentation()
+options = Options()
 
 options_menu = Menu("Options")
 change_mode_menu = Menu("Change Mode")
 
-normal_mode_menu_item = FunctionItem("Set Normal Mode", Options.changeMode, [False])
-tutorial_mode_menu_item = FunctionItem("Set Tutorial Mode", Options.changeMode, [True])
+normal_mode_menu_item = FunctionItem("Set Normal Mode", options.change_mode, [False])
+tutorial_mode_menu_item = FunctionItem("Set Tutorial Mode", options.change_mode, [True])
 change_mode_menu.add_item(normal_mode_menu_item)
 change_mode_menu.add_item(tutorial_mode_menu_item)
 

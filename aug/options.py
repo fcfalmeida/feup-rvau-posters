@@ -1,7 +1,13 @@
-class Options:
+class Options(object):
+    _instance = None
 
-    tutorialMode = False
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Options, cls).__new__(cls)
 
-    @staticmethod
-    def changeMode(tutorial):
-        tutorialMode = tutorial
+            cls._instance.tutorial_mode = False
+
+        return cls._instance
+
+    def change_mode(self, tutorial):
+        self.tutorial_mode = tutorial
