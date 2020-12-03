@@ -5,7 +5,7 @@ class Options(object):
         if cls._instance is None:
             cls._instance = super(Options, cls).__new__(cls)
 
-            cls._instance.tutorial_mode = False
+            cls._instance.tutorial_mode = True
 
         return cls._instance
 

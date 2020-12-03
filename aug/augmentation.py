@@ -11,6 +11,7 @@ from prep.camera_calibration import CameraCalibration
 class Augmentation:
 
     MIN_GOOD_MATCHES = 30
+    RATIO_THRESH = 0.75 # Lowe's Ratio
     CUBE_SIZE = 200
     CUBE_Z_OFFSET = 50
 
@@ -27,6 +28,12 @@ class Augmentation:
 
         detector = cv.ORB_create()
         matcher = cv.DescriptorMatcher_create(cv.DescriptorMatcher_BRUTEFORCE_HAMMING)
+
+        utils.tutorial_print(f"Starting augmentation using the following parameters:")
+        utils.tutorial_print(f"Detector: ORB")
+        utils.tutorial_print(f"Descriptor Matcher: Bruteforce Hanning")
+        utils.tutorial_print(f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
+        utils.tutorial_print(f"Lowe's Ratio Threshold: {Augmentation.RATIO_THRESH}")
 
         cap = cv.VideoCapture(0)
         if not cap.isOpened():
@@ -46,7 +53,8 @@ class Augmentation:
             for film, poster_img in films:
                 poster_img_gray = cv.cvtColor(poster_img, cv.COLOR_BGR2GRAY)
 
-                # -- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
+                # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
+                utils.tutorial_print(f"Computing keypoints and descriptors for {film.title}...")
                 keypoints_obj = film.keypoints
                 descriptors_obj = film.descriptors
 
@@ -63,15 +71,14 @@ class Augmentation:
                     descriptors_obj, descriptors_scene, 2)
 
                 # -- Filter matches using the Lowe's ratio test
-                ratio_thresh = 0.75
                 good_matches = []
                 for m, n in knn_matches:
-                    if m.distance < ratio_thresh * n.distance:
+                    if m.distance < Augmentation.RATIO_THRESH * n.distance:
                         good_matches.append(m)
 
-                utils.tutorial_print(f"{film.title}:{len(good_matches)}")
                 # Try to localize the object only if matches are above a certain value
                 if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
+                    utils.tutorial_print(f"Detected {film.title}'s poster with {len(good_matches)} good matches")
                     # -- Draw matches
                     img_matches = np.empty(
                         (max(poster_img.shape[0], frame.shape[0]), poster_img.shape[1]+frame.shape[1], 3), dtype=np.uint8)
@@ -110,6 +117,8 @@ class Augmentation:
 
                     frame = self._display_score(
                         obj_corners, scene_corners, frame, film.score)
+                else:
+                    utils.tutorial_print(f"Found {len(good_matches)} good matches for {film.title}")
 
             cv.imshow('Augmentation', frame)
 
