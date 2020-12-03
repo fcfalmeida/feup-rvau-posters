@@ -174,7 +174,7 @@ class Augmentation:
 
         for i in range(score):
             # Translate each cube upwards, leaving CUBE_Z_OFFSET distance between them
-            z_offset = -(size + Augmentation.CUBE_Z_OFFSET) * i
+            z_offset = -(size + Augmentation.CUBE_Z_OFFSET) * i+1
             cube = np.float32([[x_offset, y_offset, z_offset], [x_offset, y_offset+size, z_offset], [x_offset+size, y_offset+size, z_offset], [x_offset+size, y_offset, z_offset],
                                [x_offset, y_offset, -size+z_offset], [x_offset, y_offset+size, -size+z_offset], [x_offset+size, y_offset+size, -size+z_offset], [x_offset+size, y_offset, -size+z_offset]])
 
