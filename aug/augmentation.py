@@ -31,7 +31,7 @@ class Augmentation:
 
         utils.tutorial_print(f"Starting augmentation using the following parameters:")
         utils.tutorial_print(f"Detector: ORB")
-        utils.tutorial_print(f"Descriptor Matcher: Bruteforce Hanning")
+        utils.tutorial_print(f"Descriptor Matcher: Bruteforce Hamming")
         utils.tutorial_print(f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
         utils.tutorial_print(f"Lowe's Ratio Threshold: {Augmentation.RATIO_THRESH}")
 
