@@ -7,6 +7,8 @@ import aug.utils as utils
 from prep.database import Database
 from prep.camera_calibration import CameraCalibration
 
+import math
+#from scipy import ndimage
 
 class Augmentation:
 
@@ -112,9 +114,85 @@ class Augmentation:
                         scene_corners[0, 0, 0], scene_corners[0, 0, 1])
 
                     # Display the name of the film on the poster's top left corner
-                    cv.putText(
-                        frame, film.title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1, 1)
 
+                    b_channel, g_channel, r_channel = cv.split(frame)
+
+                    # creating a dummy alpha channel image.
+                    alpha_channel = np.ones(
+                        b_channel.shape, dtype=b_channel.dtype) * 50
+
+                    frame = cv.merge(
+                        (b_channel, g_channel, r_channel, alpha_channel))
+
+                    ret, rvecs, tvecs = cv.solvePnP(
+                        self._to_3d_points(obj_corners), scene_corners, self.camera_params.mtx, self.camera_params.dist)
+                    empty_img = np.zeros(
+                        (frame.shape[0], frame.shape[1], 4), dtype="uint8")
+
+                    cv.putText(
+                        empty_img, film.title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0, 255), 1, 1)
+
+                    
+                    (h, w) = empty_img.shape[:2]
+                    M,_ = cv.Rodrigues(rvecs)
+                    M = np.delete(M, 2,0) # remove z
+                    M[0][0] = 1
+                    M[1][1] = 1
+                    #euler_angles = self._rotationMatrixToEulerAngles(M)
+
+                    #angle = math.sqrt(
+                     #           math.degrees(euler_angles[0] ** 2) + math.degrees(euler_angles[1] ** 2))
+
+                    #print(angle) 
+                    #M = cv.getRotationMatrix2D((w//2, h//2), -angle ,1.0)       
+                    #empty_img = ndimage.rotate(empty_img, -angle, reshape=False)
+                    empty_img = cv.warpAffine(empty_img,M,(w,h))
+                    print(top_left_corner)
+
+                    # cos = np.abs(M[0, 0])
+                    # sin = np.abs(M[0, 1])
+
+                    # # compute the new bounding dimensions of the image
+                    # nW = int((h * sin) + (w * cos))
+                    # nH = int((h * cos) + (w * sin))
+
+                    # perform the actual rotation and return the image
+                    cv.imwrite("./transparent_img.png", empty_img)
+                    frame = cv.add(frame, empty_img)
+                    
+
+
+                    frame = self._display_score(
+                        obj_corners, scene_corners, frame, film.score)
+
+                    cv.imwrite('./frame.png', frame)
+                #else:
+                    #utils.tutorial_print(f"Found {len(good_matches)} good matches for {film.title}")
+
+            cv.imshow('Augmentation', frame)
+
+            if cv.waitKey(1) == ord('q'):
+                self._stop(cap)
+                return
+
+        # When everything done, release the capture
+        self._stop(cap)
+
+    def _rotationMatrixToEulerAngles(self, R):
+        
+        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+
+        singular = sy < 1e-6
+
+        if not singular:
+            x = math.atan2(R[2, 1], R[2, 2])
+            y = math.atan2(-R[2, 0], sy)
+            z = math.atan2(R[1, 0], R[0, 0])
+        else:
+            x = math.atan2(-R[1, 2], R[1, 1])
+            y = math.atan2(-R[2, 0], sy)
+            z = 0
+        return np.array([x, y, z])
                     frame = self._display_score(
                         obj_corners, scene_corners, frame, film.score)
                 else:
