@@ -193,20 +193,8 @@ class Augmentation:
             y = math.atan2(-R[2, 0], sy)
             z = 0
         return np.array([x, y, z])
-                    frame = self._display_score(
-                        obj_corners, scene_corners, frame, film.score)
-                else:
-                    utils.tutorial_print(f"Found {len(good_matches)} good matches for {film.title}")
-
-            cv.imshow('Augmentation', frame)
-
-            if cv.waitKey(1) == ord('q'):
-                self._stop(cap)
-                return
 
         # When everything done, release the capture
-        self._stop(cap)
-
     def _stop(self, cap):
         cap.release()
         cv.destroyAllWindows()
