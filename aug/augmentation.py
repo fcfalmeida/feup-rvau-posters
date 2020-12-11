@@ -134,10 +134,26 @@ class Augmentation:
 
                     
                     (h, w) = empty_img.shape[:2]
+                    (cx, cy)=(w // 2, h // 2)
                     M,_ = cv.Rodrigues(rvecs)
-                    M = np.delete(M, 2,0) # remove z
-                    M[0][0] = 1
-                    M[1][1] = 1
+                    M = np.delete(M, 2, 0)  # remove z
+
+                    cos = np.abs(M[0, 0])
+                    sin = np.abs(M[0, 1])
+                    # compute the new bounding dimensions of the image
+                    nW = int((h * sin) + (w * cos))
+                    nH = int((h * cos) + (w * sin))
+                    # adjust the rotation matrix to take into account translation
+                    M[0, 2] += (nW // 2) - cx
+                    M[1, 2] += (nH // 2) - cy
+                    M[0, 2] = -M[0][2] if M[0][1] > 0 else M[0][2]
+                    M[1, 2] = -M[1][2] if M[1][0] > 0 else M[1][2]
+                    #M[0,2] = 0
+                    #M[1,2] = 0
+                    #M[1,1] = 1
+                    #M[0,0] = 1
+                    print(M)
+                    print(nW, nH)
                     #euler_angles = self._rotationMatrixToEulerAngles(M)
 
                     #angle = math.sqrt(
@@ -147,7 +163,7 @@ class Augmentation:
                     #M = cv.getRotationMatrix2D((w//2, h//2), -angle ,1.0)       
                     #empty_img = ndimage.rotate(empty_img, -angle, reshape=False)
                     empty_img = cv.warpAffine(empty_img,M,(w,h))
-                    print(top_left_corner)
+                    #print(top_left_corner)
 
                     # cos = np.abs(M[0, 0])
                     # sin = np.abs(M[0, 1])
@@ -157,15 +173,17 @@ class Augmentation:
                     # nH = int((h * cos) + (w * sin))
 
                     # perform the actual rotation and return the image
-                    cv.imwrite("./transparent_img.png", empty_img)
-                    frame = cv.add(frame, empty_img)
+                    print(rvecs)
+                    #print(obj_corners)
+                    #cv.imwrite("./transparent_img.png", empty_img)
+                    frame = cv.addWeighted(frame, 1.0,empty_img, 1.0, 0.0)
                     
 
 
                     frame = self._display_score(
                         obj_corners, scene_corners, frame, film.score)
 
-                    cv.imwrite('./frame.png', frame)
+                    #cv.imwrite('./frame.png', frame)
                 #else:
                     #utils.tutorial_print(f"Found {len(good_matches)} good matches for {film.title}")
 
