@@ -162,7 +162,29 @@ class Augmentation:
                     #print(angle) 
                     #M = cv.getRotationMatrix2D((w//2, h//2), -angle ,1.0)       
                     #empty_img = ndimage.rotate(empty_img, -angle, reshape=False)
-                    empty_img = cv.warpAffine(empty_img,M,(w,h))
+                    #empty_img = cv.warpAffine(empty_img,M,(w,h))
+                    #transformation_matrix = cv.getPerspectiveTransform(obj_corners,H)
+                    print(H)
+                    #M = np.delete(M, 2, 0)  # remove z
+                    points = []
+                    points.append([
+                        scene_corners[0, 0, 0], scene_corners[0, 0, 1]]) # top left
+                    points.append([
+                        scene_corners[1, 0, 0], scene_corners[1, 0, 1]]) # top right
+                    points.append([
+                        scene_corners[2, 0, 0], scene_corners[2, 0, 1]]) # bottom right
+                    points.append([
+                        scene_corners[3, 0, 0], scene_corners[3, 0, 1]]) # bottom left
+                    sorted_points = self._sort_pts(points)
+                    pts1 = np.float32(
+                        [[scene_corners[0, 0, 0], scene_corners[0, 0, 1]], 
+                         [scene_corners[1, 0, 0], scene_corners[0, 0, 1]],
+                         [scene_corners[1, 0, 0], scene_corners[3, 0, 1]],
+                         [scene_corners[0, 0, 0], scene_corners[3, 0, 1]]])
+                    pts2 = np.float32(sorted_points)
+                    transformation_matrix = cv.getPerspectiveTransform(pts1, pts2)
+                    print(transformation_matrix)
+                    empty_img = cv.warpPerspective(empty_img,transformation_matrix,(w, h))
                     #print(top_left_corner)
 
                     # cos = np.abs(M[0, 0])
