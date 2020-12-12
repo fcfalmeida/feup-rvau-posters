@@ -218,6 +218,18 @@ class Augmentation:
         # When everything done, release the capture
         self._stop(cap)
 
+    def _sort_pts(self, points):
+        sorted_pts = np.zeros((4, 2), dtype="float32")
+        s = np.sum(points, axis=1)
+        sorted_pts[0] = points[np.argmin(s)]
+        sorted_pts[2] = points[np.argmax(s)]
+
+        diff = np.diff(points, axis=1)
+        sorted_pts[1] = points[np.argmin(diff)]
+        sorted_pts[3] = points[np.argmax(diff)]
+
+        return sorted_pts
+
     def _rotationMatrixToEulerAngles(self, R):
         
         sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
