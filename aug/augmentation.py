@@ -175,16 +175,20 @@ class Augmentation:
                         scene_corners[2, 0, 0], scene_corners[2, 0, 1]]) # bottom right
                     points.append([
                         scene_corners[3, 0, 0], scene_corners[3, 0, 1]]) # bottom left
-                    sorted_points = self._sort_pts(points)
+                    #sorted_points = self._sort_pts(points)
+                    distance_x = math.sqrt(
+                        (scene_corners[0, 0, 0] - scene_corners[1, 0, 0]) ** 2 +
+                        (scene_corners[0, 0, 1] - scene_corners[1, 0, 1]) **2)
                     pts1 = np.float32(
                         [[scene_corners[0, 0, 0], scene_corners[0, 0, 1]], 
-                         [scene_corners[1, 0, 0], scene_corners[0, 0, 1]],
-                         [scene_corners[1, 0, 0], scene_corners[3, 0, 1]],
+                         [scene_corners[0, 0, 0]+distance_x, scene_corners[0, 0, 1]],
+                         [scene_corners[0, 0, 0]+distance_x, scene_corners[3, 0, 1]],
                          [scene_corners[0, 0, 0], scene_corners[3, 0, 1]]])
-                    pts2 = np.float32(sorted_points)
+                    pts2 = np.float32(points)
                     transformation_matrix = cv.getPerspectiveTransform(pts1, pts2)
-                    print(transformation_matrix)
-                    empty_img = cv.warpPerspective(empty_img,transformation_matrix,(w, h))
+                    empty_img = cv.warpPerspective(
+                        empty_img, transformation_matrix, (w, h))
+                    
                     #print(top_left_corner)
 
                     # cos = np.abs(M[0, 0])
@@ -217,18 +221,6 @@ class Augmentation:
 
         # When everything done, release the capture
         self._stop(cap)
-
-    def _sort_pts(self, points):
-        sorted_pts = np.zeros((4, 2), dtype="float32")
-        s = np.sum(points, axis=1)
-        sorted_pts[0] = points[np.argmin(s)]
-        sorted_pts[2] = points[np.argmax(s)]
-
-        diff = np.diff(points, axis=1)
-        sorted_pts[1] = points[np.argmin(diff)]
-        sorted_pts[3] = points[np.argmax(diff)]
-
-        return sorted_pts
 
     def _rotationMatrixToEulerAngles(self, R):
         
