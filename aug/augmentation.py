@@ -4,6 +4,7 @@ import time
 import pickle
 from tkinter import Tk
 import aug.utils as utils
+from aug.options import Options
 from prep.database import Database
 from prep.camera_calibration import CameraCalibration
 
@@ -21,23 +22,25 @@ class Augmentation:
 
     def __init__(self):
         self.root = None
-        self.db = Database()
+        self.db = None
         self.camera_params = CameraCalibration().calibration_params
 
     def start(self):
         self.root = Tk()
         self.root.withdraw()
+        self.db = Database()
+
+        options = Options()
 
         films = self.db.get_films_with_images()
 
-        detector = cv.ORB_create()
+        detector = options.algorithm
         matcher = cv.DescriptorMatcher_create(
             cv.DescriptorMatcher_BRUTEFORCE_HAMMING)
 
         utils.tutorial_print(
             f"Starting augmentation using the following parameters:")
-        utils.tutorial_print(f"Detector: ORB")
-        utils.tutorial_print(f"Descriptor Matcher: Bruteforce Hamming")
+        utils.tutorial_print(detector)
         utils.tutorial_print(
             f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
         utils.tutorial_print(
@@ -71,17 +74,13 @@ class Augmentation:
                 keypoints_obj = film.keypoints
                 descriptors_obj = film.descriptors
 
-                keypoints_scene = detector.detect(frame, None)
-                keypoints_scene, descriptors_scene = detector.compute(
-                    gray_frame, keypoints_scene)
+                keypoints_scene, descriptors_scene = detector.detect_and_compute(gray_frame)
 
                 # Check if any descriptors can be found in the scene
                 if descriptors_scene is None:
                     continue
 
-                # -- Step 2: Matching descriptor vectors
-                knn_matches = matcher.knnMatch(
-                    descriptors_obj, descriptors_scene, 2)
+                knn_matches = detector.get_matches(descriptors_obj, descriptors_scene)
 
                 # -- Filter matches using the Lowe's ratio test
                 good_matches = []
@@ -158,7 +157,7 @@ class Augmentation:
                     #M = cv.getRotationMatrix2D((w//2, h//2), -angle ,1.0)
                     #empty_img = ndimage.rotate(empty_img, -angle, reshape=False)
                     empty_img = cv.warpAffine(empty_img, M, (w, h))
-                    print(top_left_corner)
+                    # print(top_left_corner)
 
                     # cos = np.abs(M[0, 0])
                     # sin = np.abs(M[0, 1])
@@ -296,9 +295,7 @@ class Augmentation:
             keypoints_obj = film.keypoints
             descriptors_obj = film.descriptors
 
-            keypoints_scene = detector.detect(frame, None)
-            keypoints_scene, descriptors_scene = detector.compute(
-                gray_frame, keypoints_scene)
+            keypoints_scene, descriptors_scene = detector.detect_and_compute(gray_frame)
 
             cv.drawKeypoints(frame, keypoints_scene, frame, color=(255, 0, 0))
             utils.tutorial_print("Detected Keypoints\nPress space to continue")
@@ -310,9 +307,7 @@ class Augmentation:
             if descriptors_scene is None:
                 continue
 
-            # -- Step 2: Matching descriptor vectors
-            knn_matches = matcher.knnMatch(
-                descriptors_obj, descriptors_scene, 2)
+            knn_matches = detector.get_matches(descriptors_obj, descriptors_scene)
 
             # -- Filter matches using the Lowe's ratio test
             good_matches = []
@@ -402,7 +397,7 @@ class Augmentation:
                 #M = cv.getRotationMatrix2D((w//2, h//2), -angle ,1.0)
                 #empty_img = ndimage.rotate(empty_img, -angle, reshape=False)
                 empty_img = cv.warpAffine(empty_img, M, (w, h))
-                print(top_left_corner)
+                # print(top_left_corner)
 
                 # cos = np.abs(M[0, 0])
                 # sin = np.abs(M[0, 1])
