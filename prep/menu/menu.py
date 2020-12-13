@@ -45,7 +45,7 @@ class Menu(MenuItem):
             print("{0} {1} {2}".format(self.borders.vertical_border,
                                        '='*37, self.borders.vertical_border))
             print("{0} {1:37} {2}".format(self.borders.vertical_border,
-                                       '', self.borders.vertical_border))
+                                          '', self.borders.vertical_border))
 
             # Menu Items
             for i in range(len(self.items)):
