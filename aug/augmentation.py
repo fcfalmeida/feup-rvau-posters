@@ -48,7 +48,7 @@ class Augmentation:
             print("Cannot open camera")
             exit()
 
-        if utils.is_tutorial:
+        if utils.is_tutorial():
             self._tutorial_mode_run(cap, films, detector, matcher)
             return
 
