@@ -7,6 +7,7 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from prep.menu import FunctionItem
 from prep.film import Film
+import aug.options as options
 
 
 class Database:
@@ -98,16 +99,27 @@ class Database:
         pickle.dump(data, open(self.DB_DIR + self.PERSISTENCE_FILE, "wb"))
 
     def _extract_features(self, img):
-        minHessian = 400
-        detector = cv.ORB_create()
+        algorithm = options.Options().algorithm
 
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-        keypoints = detector.detect(img, None)
-        keypoints, descriptors = detector.compute(
-            img, keypoints)
+        keypoints, descriptors = algorithm.detect_and_compute(img)
 
         return keypoints, descriptors
+
+    def recompute_features(self):
+        films_with_imgs = self.get_films_with_images()
+
+        for i in range(len(films_with_imgs)):
+            film_with_img = films_with_imgs[i]
+            img = film_with_img[1]
+
+            keypoints, descriptors = self._extract_features(img)
+
+            self.data[i].keypoints = keypoints
+            self.data[i].descriptors = descriptors
+
+        self._save()
 
     def _serialize_keypoints(self, keypoints):
         ser_keypoints = []
