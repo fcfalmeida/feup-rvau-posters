@@ -38,13 +38,10 @@ class Augmentation:
         matcher = cv.DescriptorMatcher_create(
             cv.DescriptorMatcher_BRUTEFORCE_HAMMING)
 
-        utils.tutorial_print(
-            f"Starting augmentation using the following parameters:")
-        utils.tutorial_print(detector)
-        utils.tutorial_print(
-            f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
-        utils.tutorial_print(
-            f"Lowe's Ratio Threshold: {Augmentation.RATIO_THRESH}")
+        print(f"Starting augmentation using the following parameters:")
+        print(detector)
+        print(f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
+        print(f"Lowe's Ratio Threshold: {Augmentation.RATIO_THRESH}")
 
         cap = cv.VideoCapture(0)
         if not cap.isOpened():
@@ -69,108 +66,33 @@ class Augmentation:
                 poster_img_gray = cv.cvtColor(poster_img, cv.COLOR_BGR2GRAY)
 
                 # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
-                utils.tutorial_print(
-                    f"Computing keypoints and descriptors for {film.title}...")
                 keypoints_obj = film.keypoints
                 descriptors_obj = film.descriptors
 
-                keypoints_scene, descriptors_scene = detector.detect_and_compute(gray_frame)
+                keypoints_scene, descriptors_scene = detector.detect_and_compute(
+                    gray_frame)
 
                 # Check if any descriptors can be found in the scene
                 if descriptors_scene is None:
                     continue
 
-                knn_matches = detector.get_matches(descriptors_obj, descriptors_scene)
+                knn_matches = detector.get_matches(
+                    descriptors_obj, descriptors_scene)
 
-                # -- Filter matches using the Lowe's ratio test
-                good_matches = []
-                for m, n in knn_matches:
-                    if m.distance < Augmentation.RATIO_THRESH * n.distance:
-                        good_matches.append(m)
+                good_matches = self._find_good_matches(knn_matches)
 
                 # Try to localize the object only if matches are above a certain value
                 if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
-                    utils.tutorial_print(
-                        f"Detected {film.title}'s poster with {len(good_matches)} good matches")
-                    # -- Draw matches
-                    img_matches = np.empty(
-                        (max(poster_img.shape[0], frame.shape[0]), poster_img.shape[1]+frame.shape[1], 3), dtype=np.uint8)
-
-                    # -- Localize the object
-                    obj = np.empty((len(good_matches), 2), dtype=np.float32)
-                    scene = np.empty((len(good_matches), 2), dtype=np.float32)
-                    for i in range(len(good_matches)):
-                        # -- Get the keypoints from the good matches
-                        obj[i, 0] = keypoints_obj[good_matches[i].queryIdx].pt[0]
-                        obj[i, 1] = keypoints_obj[good_matches[i].queryIdx].pt[1]
-                        scene[i, 0] = keypoints_scene[good_matches[i].trainIdx].pt[0]
-                        scene[i, 1] = keypoints_scene[good_matches[i].trainIdx].pt[1]
-
-                    H, _ = cv.findHomography(obj, scene, cv.RANSAC)
-                    # -- Get the corners from the image_1 ( the object to be "detected" )
-                    obj_corners = np.empty((4, 1, 2), dtype=np.float32)
-                    obj_corners[0, 0, 0] = 0
-                    obj_corners[0, 0, 1] = 0
-                    obj_corners[1, 0, 0] = poster_img.shape[1]
-                    obj_corners[1, 0, 1] = 0
-                    obj_corners[2, 0, 0] = poster_img.shape[1]
-                    obj_corners[2, 0, 1] = poster_img.shape[0]
-                    obj_corners[3, 0, 0] = 0
-                    obj_corners[3, 0, 1] = poster_img.shape[0]
+                    H, obj_corners = self._find_homography(
+                        poster_img, good_matches, keypoints_obj, keypoints_scene)
 
                     scene_corners = cv.perspectiveTransform(obj_corners, H)
 
-                    # Top left corner of the poster
-                    top_left_corner = (
-                        scene_corners[0, 0, 0], scene_corners[0, 0, 1])
-
-                    # Display the name of the film on the poster's top left corner
-
-                    b_channel, g_channel, r_channel = cv.split(frame)
-
-                    # creating a dummy alpha channel image.
-                    alpha_channel = np.ones(
-                        b_channel.shape, dtype=b_channel.dtype) * 50
-
-                    frame = cv.merge(
-                        (b_channel, g_channel, r_channel, alpha_channel))
-
-                    text_img = np.zeros(
-                        (frame.shape[0], frame.shape[1], 4), dtype="uint8")
-
-                    cv.putText(
-                        text_img, film.title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0, 255), 1, 1)
-                    
-                    frame_scene_points = []
-                    frame_scene_points.append([
-                        scene_corners[0, 0, 0], scene_corners[0, 0, 1]]) # top left
-                    frame_scene_points.append([
-                        scene_corners[1, 0, 0], scene_corners[1, 0, 1]]) # top right
-                    frame_scene_points.append([
-                        scene_corners[2, 0, 0], scene_corners[2, 0, 1]]) # bottom right
-                    frame_scene_points.append([
-                        scene_corners[3, 0, 0], scene_corners[3, 0, 1]]) # bottom left
-                    offset_x = math.sqrt(
-                        (scene_corners[0, 0, 0] - scene_corners[1, 0, 0]) ** 2 +
-                        (scene_corners[0, 0, 1] - scene_corners[1, 0, 1]) **2)
-                    text_img_points = np.float32(
-                        [[scene_corners[0, 0, 0], scene_corners[0, 0, 1]], 
-                         [scene_corners[0, 0, 0]+offset_x, scene_corners[0, 0, 1]],
-                         [scene_corners[0, 0, 0]+offset_x, scene_corners[3, 0, 1]],
-                         [scene_corners[0, 0, 0], scene_corners[3, 0, 1]]])
-                    frame_scene_points = np.float32(frame_scene_points)
-                    transformation_matrix = cv.getPerspectiveTransform(text_img_points, frame_scene_points)
-                    (h, w) = text_img.shape[:2]
-                    text_img = cv.warpPerspective(
-                        text_img, transformation_matrix, (w, h))
-                    
-                    frame = cv.add(frame, text_img)
+                    frame = self._display_title(
+                        frame, scene_corners, film.title)
 
                     frame = self._display_score(
                         obj_corners, scene_corners, frame, film.score)
-
-                # else:
-                    #utils.tutorial_print(f"Found {len(good_matches)} good matches for {film.title}")
 
             cv.imshow('Augmentation', frame)
 
@@ -187,6 +109,89 @@ class Augmentation:
         cv.destroyAllWindows()
         # Prevents freezing when closing the window for some reason
         cv.waitKey(1)
+
+    def _find_good_matches(self, matches):
+        # -- Filter matches using the Lowe's ratio test
+        good_matches = []
+        for m, n in matches:
+            if m.distance < Augmentation.RATIO_THRESH * n.distance:
+                good_matches.append(m)
+
+        return good_matches
+
+    def _find_homography(self, poster_img, good_matches, keypoints_obj, keypoints_scene):
+        # -- Localize the object
+        obj = np.empty((len(good_matches), 2), dtype=np.float32)
+        scene = np.empty((len(good_matches), 2), dtype=np.float32)
+        for i in range(len(good_matches)):
+            # -- Get the keypoints from the good matches
+            obj[i, 0] = keypoints_obj[good_matches[i].queryIdx].pt[0]
+            obj[i, 1] = keypoints_obj[good_matches[i].queryIdx].pt[1]
+            scene[i, 0] = keypoints_scene[good_matches[i].trainIdx].pt[0]
+            scene[i, 1] = keypoints_scene[good_matches[i].trainIdx].pt[1]
+
+        H, _ = cv.findHomography(obj, scene, cv.RANSAC)
+        # -- Get the corners from the image_1 ( the object to be "detected" )
+        obj_corners = np.empty((4, 1, 2), dtype=np.float32)
+        obj_corners[0, 0, 0] = 0
+        obj_corners[0, 0, 1] = 0
+        obj_corners[1, 0, 0] = poster_img.shape[1]
+        obj_corners[1, 0, 1] = 0
+        obj_corners[2, 0, 0] = poster_img.shape[1]
+        obj_corners[2, 0, 1] = poster_img.shape[0]
+        obj_corners[3, 0, 0] = 0
+        obj_corners[3, 0, 1] = poster_img.shape[0]
+
+        return H, obj_corners
+
+    def _display_title(self, frame, scene_corners, title):
+        # Display the name of the film on the poster's top left corner
+        b_channel, g_channel, r_channel = cv.split(frame)
+
+        # creating a dummy alpha channel image.
+        alpha_channel = np.ones(
+            b_channel.shape, dtype=b_channel.dtype) * 50
+
+        frame = cv.merge(
+            (b_channel, g_channel, r_channel, alpha_channel))
+
+        text_img = np.zeros(
+            (frame.shape[0], frame.shape[1], 4), dtype="uint8")
+
+        # Top left corner of the poster
+        top_left_corner = (
+            scene_corners[0, 0, 0], scene_corners[0, 0, 1])
+
+        cv.putText(
+            text_img, title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0, 255), 1, 1)
+
+        frame_scene_points = []
+        frame_scene_points.append([
+            scene_corners[0, 0, 0], scene_corners[0, 0, 1]])  # top left
+        frame_scene_points.append([
+            scene_corners[1, 0, 0], scene_corners[1, 0, 1]])  # top right
+        frame_scene_points.append([
+            scene_corners[2, 0, 0], scene_corners[2, 0, 1]])  # bottom right
+        frame_scene_points.append([
+            scene_corners[3, 0, 0], scene_corners[3, 0, 1]])  # bottom left
+        offset_x = math.sqrt(
+            (scene_corners[0, 0, 0] - scene_corners[1, 0, 0]) ** 2 +
+            (scene_corners[0, 0, 1] - scene_corners[1, 0, 1]) ** 2)
+        text_img_points = np.float32(
+            [[scene_corners[0, 0, 0], scene_corners[0, 0, 1]],
+                [scene_corners[0, 0, 0]+offset_x, scene_corners[0, 0, 1]],
+                [scene_corners[0, 0, 0]+offset_x, scene_corners[3, 0, 1]],
+                [scene_corners[0, 0, 0], scene_corners[3, 0, 1]]])
+        frame_scene_points = np.float32(frame_scene_points)
+        transformation_matrix = cv.getPerspectiveTransform(
+            text_img_points, frame_scene_points)
+        (h, w) = text_img.shape[:2]
+        text_img = cv.warpPerspective(
+            text_img, transformation_matrix, (w, h))
+
+        frame = cv.add(frame, text_img)
+
+        return frame
 
     def _display_score(self, obj_corners, scene_corners, frame, score):
         # Calculate the poster's width by subtracting the x coordinate of the top right and top left corner
@@ -255,7 +260,7 @@ class Augmentation:
         success = None
         frame = None
         gray_frame = None
-        utils.tutorial_print(
+        print(
             "Press space while showing the poster to continue")
         while cv.waitKey(1) != Augmentation.SPACE_KEY:
             success, frame = cap.read()
@@ -269,15 +274,16 @@ class Augmentation:
             poster_img_gray = cv.cvtColor(poster_img, cv.COLOR_BGR2GRAY)
 
             # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
-            utils.tutorial_print(
+            print(
                 f"Computing keypoints and descriptors for {film.title}...")
             keypoints_obj = film.keypoints
             descriptors_obj = film.descriptors
 
-            keypoints_scene, descriptors_scene = detector.detect_and_compute(gray_frame)
+            keypoints_scene, descriptors_scene = detector.detect_and_compute(
+                gray_frame)
 
             cv.drawKeypoints(frame, keypoints_scene, frame, color=(255, 0, 0))
-            utils.tutorial_print("Detected Keypoints\nPress space to continue")
+            print("Detected Keypoints\nPress space to continue")
             cv.imshow('Augmentation', frame)
             while(cv.waitKey(1) != Augmentation.SPACE_KEY):
                 pass
@@ -286,17 +292,14 @@ class Augmentation:
             if descriptors_scene is None:
                 continue
 
-            knn_matches = detector.get_matches(descriptors_obj, descriptors_scene)
+            knn_matches = detector.get_matches(
+                descriptors_obj, descriptors_scene)
 
-            # -- Filter matches using the Lowe's ratio test
-            good_matches = []
-            for m, n in knn_matches:
-                if m.distance < Augmentation.RATIO_THRESH * n.distance:
-                    good_matches.append(m)
+            good_matches = self._find_good_matches(knn_matches)
 
             # Try to localize the object only if matches are above a certain value
             if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
-                utils.tutorial_print(
+                print(
                     f"Detected {film.title}'s poster with {len(good_matches)} good matches")
                 # -- Draw matches
                 img_matches = np.empty(
@@ -304,99 +307,40 @@ class Augmentation:
 
                 cv.drawMatches(poster_img, keypoints_obj, frame, keypoints_scene, good_matches,
                                img_matches, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-                utils.tutorial_print(
+                print(
                     f"Matches for the poster {film.title}\nPress space to continue")
                 cv.imshow('Good Matches', img_matches)
+
                 while(cv.waitKey(1) != Augmentation.SPACE_KEY):
                     pass
 
-                # -- Localize the object
-                obj = np.empty((len(good_matches), 2), dtype=np.float32)
-                scene = np.empty((len(good_matches), 2), dtype=np.float32)
-                for i in range(len(good_matches)):
-                    # -- Get the keypoints from the good matches
-                    obj[i, 0] = keypoints_obj[good_matches[i].queryIdx].pt[0]
-                    obj[i, 1] = keypoints_obj[good_matches[i].queryIdx].pt[1]
-                    scene[i, 0] = keypoints_scene[good_matches[i].trainIdx].pt[0]
-                    scene[i, 1] = keypoints_scene[good_matches[i].trainIdx].pt[1]
-
-                H, _ = cv.findHomography(obj, scene, cv.RANSAC)
-                # -- Get the corners from the image_1 ( the object to be "detected" )
-                obj_corners = np.empty((4, 1, 2), dtype=np.float32)
-                obj_corners[0, 0, 0] = 0
-                obj_corners[0, 0, 1] = 0
-                obj_corners[1, 0, 0] = poster_img.shape[1]
-                obj_corners[1, 0, 1] = 0
-                obj_corners[2, 0, 0] = poster_img.shape[1]
-                obj_corners[2, 0, 1] = poster_img.shape[0]
-                obj_corners[3, 0, 0] = 0
-                obj_corners[3, 0, 1] = poster_img.shape[0]
+                H, obj_corners = self._find_homography(
+                    poster_img, good_matches, keypoints_obj, keypoints_scene)
 
                 scene_corners = cv.perspectiveTransform(obj_corners, H)
-                utils.tutorial_print(
+
+                print(
                     f"Found scene corners: {scene_corners}\nPress space to continue")
+
                 cv.imshow('Augmentation', frame)
                 while(cv.waitKey(1) != Augmentation.SPACE_KEY):
                     pass
 
-                # Top left corner of the poster
-                top_left_corner = (
-                    scene_corners[0, 0, 0], scene_corners[0, 0, 1])
-
-                # Display the name of the film on the poster's top left corner
-
-                b_channel, g_channel, r_channel = cv.split(frame)
-
-                # creating a dummy alpha channel image.
-                alpha_channel = np.ones(
-                    b_channel.shape, dtype=b_channel.dtype) * 50
-
-                frame = cv.merge(
-                    (b_channel, g_channel, r_channel, alpha_channel))
-
-                text_img = np.zeros(
-                    (frame.shape[0], frame.shape[1], 4), dtype="uint8")
-
-                cv.putText(
-                    text_img, film.title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0, 255), 1, 1)
-                
-                frame_scene_points = []
-                frame_scene_points.append([
-                    scene_corners[0, 0, 0], scene_corners[0, 0, 1]]) # top left
-                frame_scene_points.append([
-                    scene_corners[1, 0, 0], scene_corners[1, 0, 1]]) # top right
-                frame_scene_points.append([
-                    scene_corners[2, 0, 0], scene_corners[2, 0, 1]]) # bottom right
-                frame_scene_points.append([
-                    scene_corners[3, 0, 0], scene_corners[3, 0, 1]]) # bottom left
-                offset_x = math.sqrt(
-                    (scene_corners[0, 0, 0] - scene_corners[1, 0, 0]) ** 2 +
-                    (scene_corners[0, 0, 1] - scene_corners[1, 0, 1]) **2)
-                text_img_points = np.float32(
-                    [[scene_corners[0, 0, 0], scene_corners[0, 0, 1]], 
-                        [scene_corners[0, 0, 0]+offset_x, scene_corners[0, 0, 1]],
-                        [scene_corners[0, 0, 0]+offset_x, scene_corners[3, 0, 1]],
-                        [scene_corners[0, 0, 0], scene_corners[3, 0, 1]]])
-                frame_scene_points = np.float32(frame_scene_points)
-                transformation_matrix = cv.getPerspectiveTransform(text_img_points, frame_scene_points)
-                (h, w) = text_img.shape[:2]
-                text_img = cv.warpPerspective(
-                    text_img, transformation_matrix, (w, h))
-                
-                frame = cv.add(frame, text_img)
+                frame = self._display_title(frame, scene_corners, film.title)
 
                 frame = self._display_score(
                     obj_corners, scene_corners, frame, film.score)
 
             else:
-                utils.tutorial_print(
+                print(
                     f"The poster didn't have enough good match with {film.title}\nPress space to continue")
                 cv.imshow('Augmentation', frame)
                 while(cv.waitKey(1) != Augmentation.SPACE_KEY):
                     pass
 
-        utils.tutorial_print("Press space to finish")
+        print("Press space to finish")
         cv.imshow('Augmentation', frame)
+
         while(cv.waitKey(1) != Augmentation.SPACE_KEY):
             self._stop(cap)
             return
