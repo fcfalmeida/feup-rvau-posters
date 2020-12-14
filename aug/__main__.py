@@ -9,7 +9,7 @@ options = Options()
 
 options_menu = Menu("Options")
 change_mode_menu = Menu("Change Mode")
-change_detector_menu = Menu("Change Detector")
+change_detector_menu = Menu("Change Algorithm")
 
 normal_mode_menu_item = FunctionItem(
     "Set Normal Mode", options.change_mode, [False])
