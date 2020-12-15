@@ -145,53 +145,56 @@ class Augmentation:
         return H, obj_corners
 
     def _display_title(self, frame, scene_corners, title):
-        # Display the name of the film on the poster's top left corner
-        b_channel, g_channel, r_channel = cv.split(frame)
+        try:
+            # Display the name of the film on the poster's top left corner
+            b_channel, g_channel, r_channel = cv.split(frame)
 
-        # creating a dummy alpha channel image.
-        alpha_channel = np.ones(
-            b_channel.shape, dtype=b_channel.dtype) * 50
+            # creating a dummy alpha channel image.
+            alpha_channel = np.ones(
+                b_channel.shape, dtype=b_channel.dtype) * 50
 
-        frame = cv.merge(
-            (b_channel, g_channel, r_channel, alpha_channel))
+            frame = cv.merge(
+                (b_channel, g_channel, r_channel, alpha_channel))
 
-        text_img = np.zeros(
-            (frame.shape[0], frame.shape[1], 4), dtype="uint8")
+            text_img = np.zeros(
+                (frame.shape[0], frame.shape[1], 4), dtype="uint8")
 
-        # Top left corner of the poster
-        top_left_corner = (
-            scene_corners[0, 0, 0], scene_corners[0, 0, 1])
+            # Top left corner of the poster
+            top_left_corner = (
+                scene_corners[0, 0, 0], scene_corners[0, 0, 1])
 
-        cv.putText(
-            text_img, title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0, 255), 1, 1)
+            cv.putText(
+                text_img, title, top_left_corner, cv.FONT_HERSHEY_PLAIN, 1, (0, 255, 0, 255), 1, 1)
 
-        frame_scene_points = []
-        frame_scene_points.append([
-            scene_corners[0, 0, 0], scene_corners[0, 0, 1]])  # top left
-        frame_scene_points.append([
-            scene_corners[1, 0, 0], scene_corners[1, 0, 1]])  # top right
-        frame_scene_points.append([
-            scene_corners[2, 0, 0], scene_corners[2, 0, 1]])  # bottom right
-        frame_scene_points.append([
-            scene_corners[3, 0, 0], scene_corners[3, 0, 1]])  # bottom left
-        offset_x = math.sqrt(
-            (scene_corners[0, 0, 0] - scene_corners[1, 0, 0]) ** 2 +
-            (scene_corners[0, 0, 1] - scene_corners[1, 0, 1]) ** 2)
-        text_img_points = np.float32(
-            [[scene_corners[0, 0, 0], scene_corners[0, 0, 1]],
-                [scene_corners[0, 0, 0]+offset_x, scene_corners[0, 0, 1]],
-                [scene_corners[0, 0, 0]+offset_x, scene_corners[3, 0, 1]],
-                [scene_corners[0, 0, 0], scene_corners[3, 0, 1]]])
-        frame_scene_points = np.float32(frame_scene_points)
-        transformation_matrix = cv.getPerspectiveTransform(
-            text_img_points, frame_scene_points)
-        (h, w) = text_img.shape[:2]
-        text_img = cv.warpPerspective(
-            text_img, transformation_matrix, (w, h))
+            frame_scene_points = []
+            frame_scene_points.append([
+                scene_corners[0, 0, 0], scene_corners[0, 0, 1]])  # top left
+            frame_scene_points.append([
+                scene_corners[1, 0, 0], scene_corners[1, 0, 1]])  # top right
+            frame_scene_points.append([
+                scene_corners[2, 0, 0], scene_corners[2, 0, 1]])  # bottom right
+            frame_scene_points.append([
+                scene_corners[3, 0, 0], scene_corners[3, 0, 1]])  # bottom left
+            offset_x = math.sqrt(
+                (scene_corners[0, 0, 0] - scene_corners[1, 0, 0]) ** 2 +
+                (scene_corners[0, 0, 1] - scene_corners[1, 0, 1]) ** 2)
+            text_img_points = np.float32(
+                [[scene_corners[0, 0, 0], scene_corners[0, 0, 1]],
+                    [scene_corners[0, 0, 0]+offset_x, scene_corners[0, 0, 1]],
+                    [scene_corners[0, 0, 0]+offset_x, scene_corners[3, 0, 1]],
+                    [scene_corners[0, 0, 0], scene_corners[3, 0, 1]]])
+            frame_scene_points = np.float32(frame_scene_points)
+            transformation_matrix = cv.getPerspectiveTransform(
+                text_img_points, frame_scene_points)
+            (h, w) = text_img.shape[:2]
+            text_img = cv.warpPerspective(
+                text_img, transformation_matrix, (w, h))
 
-        frame = cv.add(frame, text_img)
+            frame = cv.add(frame, text_img)
 
-        return frame
+            return frame
+        except ValueError:
+            return frame
 
     def _display_score(self, obj_corners, scene_corners, frame, score):
         # Calculate the poster's width by subtracting the x coordinate of the top right and top left corner
@@ -325,7 +328,7 @@ class Augmentation:
                 cv.imshow('Augmentation', frame)
                 while(cv.waitKey(1) != Augmentation.SPACE_KEY):
                     pass
-
+                
                 frame = self._display_title(frame, scene_corners, film.title)
 
                 frame = self._display_score(
