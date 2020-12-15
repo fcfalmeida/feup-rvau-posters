@@ -99,6 +99,18 @@ class Database:
         pickle.dump(data, open(self.DB_DIR + self.PERSISTENCE_FILE, "wb"))
 
     def _extract_features(self, img):
+        """Identifies keypoints and descriptors of the provided image
+
+        Parameters
+        ----------
+        img : np.array
+            The image whose features will be extracted
+
+        Returns
+        ----------
+        tuple of np.array
+            A tuple containing the keypoints and descriptors of the image
+        """
         algorithm = options.Options().algorithm
 
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
@@ -108,6 +120,8 @@ class Database:
         return keypoints, descriptors
 
     def recompute_features(self):
+        """Re-extracts the features of all images in the database
+        """
         films_with_imgs = self.get_films_with_images()
 
         for i in range(len(films_with_imgs)):

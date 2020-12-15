@@ -57,18 +57,19 @@ class Augmentation:
             try:
                 # Capture frame-by-frame
                 success, frame = cap.read()
-                # if frame is read correctly ret is True
+                # if frame is read correctly success is True
                 if not success:
                     print("Can't receive frame (stream end?). Exiting ...")
                     break
 
+                # Convert the frame intro grayscale so that it can be processed
                 gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
                 for film, poster_img in films:
                     poster_img_gray = cv.cvtColor(
                         poster_img, cv.COLOR_BGR2GRAY)
 
-                    # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
+                    # Detect the keypoints and compute the descriptors
                     keypoints_obj = film.keypoints
                     descriptors_obj = film.descriptors
 
@@ -79,9 +80,11 @@ class Augmentation:
                     if descriptors_scene is None:
                         continue
 
+                    # Find matches between the descriptors of the poster image and the frame
                     knn_matches = detector.get_matches(
                         descriptors_obj, descriptors_scene)
 
+                    # Filter out matches below the threshold
                     good_matches = self._find_good_matches(knn_matches)
 
                     # Try to localize the object only if matches are above a certain value
@@ -106,10 +109,7 @@ class Augmentation:
             except:
                 pass
 
-            # When everything done, release the capture
         self._stop(cap)
-
-        # When everything done, release the capture
 
     def _stop(self, cap):
         cap.release()
@@ -118,7 +118,17 @@ class Augmentation:
         cv.waitKey(1)
 
     def _find_good_matches(self, matches):
-        # -- Filter matches using the Lowe's ratio test
+        """ Filter out matches according to RATIO_THRESH
+
+        Parameters
+        ----------
+        matches: Descriptor matches
+
+        Returns
+        -------
+        list of float
+            The list of matches that pass the ratio test
+        """
         good_matches = []
         for m, n in matches:
             if m.distance < Augmentation.RATIO_THRESH * n.distance:
@@ -127,6 +137,25 @@ class Augmentation:
         return good_matches
 
     def _find_homography(self, poster_img, good_matches, keypoints_obj, keypoints_scene):
+        """Computes the homography of the poster's image
+
+        Parameters
+        ----------
+        poster_img : np.array 
+            The image file of the poster 
+        good_matches : list 
+            The list of good matches obtained from _find_good_matches 
+        keypoints_obj : np.array  
+            The keypoints identified in the poster's image 
+        keypoints_scene : np.array 
+            The keypoints identified in the frame (scene) 
+            
+        Returns
+        -------
+        tuple of np.array 
+            a tuple containing the homography matrix and the poster's corners' scene coordinates
+        """
+
         # -- Localize the object
         obj = np.empty((len(good_matches), 2), dtype=np.float32)
         scene = np.empty((len(good_matches), 2), dtype=np.float32)
@@ -152,6 +181,22 @@ class Augmentation:
         return H, obj_corners
 
     def _display_title(self, frame, scene_corners, title):
+        """Displays the title of the movie on the top left corner of the poster in the scene
+
+        Paramaters
+        ----------
+        frame : np.array
+            The currently displayed camera image frame
+        scene_corners : np.array
+            The coordinates of the poster's corners in the scene
+        title : str
+            The title of the movie
+
+        Returns
+        -------
+        np.array
+            The frame with the text on the top left corner of the poster
+        """
         try:
             # Display the name of the film on the poster's top left corner
             b_channel, g_channel, r_channel = cv.split(frame)
@@ -204,6 +249,25 @@ class Augmentation:
             return frame
 
     def _display_score(self, obj_corners, scene_corners, frame, score):
+        """Draws a stack of cubes in the center of the poster according to the movie's score
+
+        Parameters
+        ----------
+        obj_corners : np.array
+            The coordinates of the poster image's corners
+        scene_corners : np.array
+            The coordinates of the poster's corners in the scene
+        frame : np.array
+            Currently displayed frame
+        score : int
+            The movie's score
+
+        Returns
+        -------
+        np.array
+            The frame with a stack of cubes placed in the center of the poster
+        """
+
         # Calculate the poster's width by subtracting the x coordinate of the top right and top left corner
         poster_width = obj_corners[1, 0, 0] - obj_corners[0, 0, 0]
         # Calculate the poster's height by subtracting the y coordinate of the bottom left and top left corner
@@ -234,6 +298,20 @@ class Augmentation:
         return self._draw_cubes(frame, x_offset, y_offset, score, rvecs, tvecs)
 
     def _draw_cube(self, frame, cubepts):
+        """Draws a cube according to the provided vertex coordinates
+
+        Parameters
+        ----------
+        frame : np.array
+            Currently displayed frame
+        cubepts : np.array
+            The coordinates of the cube's vertices
+
+        Returns
+        -------
+        np.array
+            The frame with a cube drawn in the specified coordinates
+        """
         cubepts = np.int32(cubepts).reshape(-1, 2)
         # draw bottom layer
         img = cv.drawContours(frame, [cubepts[:4]], -1, (255, 255, 255), 2)
@@ -246,6 +324,28 @@ class Augmentation:
         return img
 
     def _draw_cubes(self, frame, x_offset, y_offset, score, rvecs, tvecs):
+        """Draws a number of cubes according to the movie's score
+
+        Parameters
+        ----------
+        frame : np.array
+            Currently displayed frame
+        x_offset : int
+            The x axis offset from which to start drawing the cubes
+        y_offset : int
+            The y axis offset from which to start drawing the cubes
+        score : int
+            The movie's score
+        rvecs : np.array
+            Rotation vectors obtained from solvePnP
+        tvecs : np.array
+            Translation vectors obtained from solvePnP
+
+        Returns
+        -------
+        np.array
+            The frame with a stack of cubes in the center of the poster
+        """
         size = Augmentation.CUBE_SIZE
 
         for i in range(score):
@@ -263,8 +363,17 @@ class Augmentation:
         return frame
 
     def _to_3d_points(self, points2d):
-        """
-        Converts a list of 2d points into a list of 3d points by adding a z = 0 coordinate
+        """Converts an array of 2d points into an array of 3d points by adding a z = 0 coordinate
+
+        Parameters
+        ----------
+        points2d : np.array
+            An array of 2D points
+
+        Returns
+        -------
+        np.array
+            An array of 3D points with z = 0
         """
         points3d = np.empty((4, 1, 3), dtype=np.float32)
 
