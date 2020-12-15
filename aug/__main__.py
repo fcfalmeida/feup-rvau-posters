@@ -20,8 +20,10 @@ change_mode_menu.add_item(tutorial_mode_menu_item)
 
 surf_menu_item = FunctionItem("SURF", options.change_algorithm, [SURF()])
 orb_menu_item = FunctionItem("ORB", options.change_algorithm, [ORB()])
+brief_menu_item = FunctionItem("BRIEF", options.change_algorithm, [BRIEF()])
 change_detector_menu.add_item(surf_menu_item)
 change_detector_menu.add_item(orb_menu_item)
+change_detector_menu.add_item(brief_menu_item)
 
 options_menu.add_menu(change_mode_menu)
 options_menu.add_menu(change_detector_menu)
