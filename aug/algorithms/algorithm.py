@@ -1,8 +1,9 @@
 class Algorithm:
 
-    def __init__(self, detector, matcher):
+    def __init__(self, detector, matcher, min_good_matches):
         self.detector = detector
         self.matcher = matcher
+        self.min_good_matches = min_good_matches
 
     def detect_and_compute(self, img):
         keypoints = self.detector.detect(img, None)
