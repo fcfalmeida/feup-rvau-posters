@@ -9,4 +9,4 @@ class SURF(Algorithm):
         super().__init__(surf, cv.DescriptorMatcher_create(cv.DescriptorMatcher_FLANNBASED), 100)
 
     def __str__(self):
-        return f"Detector: SURF\nMatcher: {self.matcher}"
+        return f"Detector: SURF\nMatcher: FLANN"

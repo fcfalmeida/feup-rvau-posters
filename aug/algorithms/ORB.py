@@ -9,4 +9,4 @@ class ORB(Algorithm):
             cv.DescriptorMatcher_BRUTEFORCE_HAMMING), 30)
 
     def __str__(self):
-        return f"Detector: ORB\nMatcher: {self.matcher}"
+        return f"Detector: ORB\nMatcher: Bruteforce Hamming"

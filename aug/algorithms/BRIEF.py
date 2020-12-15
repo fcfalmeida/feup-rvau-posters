@@ -19,4 +19,4 @@ class BRIEF(Algorithm):
         return keypoints, descriptors
 
     def __str__(self):
-        return f"Detector: BRIEF\nMatcher: {self.matcher}"
+        return f"Detector: BRIEF\nMatcher: Bruteforce Hamming"
