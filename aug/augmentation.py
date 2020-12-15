@@ -26,82 +26,85 @@ class Augmentation:
         self.camera_params = CameraCalibration().calibration_params
 
     def start(self):
-        self.root = Tk()
-        self.root.withdraw()
-        self.db = Database()
+        try:
+            self.root = Tk()
+            self.root.withdraw()
+            self.db = Database()
 
-        options = Options()
+            options = Options()
 
-        films = self.db.get_films_with_images()
+            films = self.db.get_films_with_images()
 
-        detector = options.algorithm
-        matcher = cv.DescriptorMatcher_create(
-            cv.DescriptorMatcher_BRUTEFORCE_HAMMING)
+            detector = options.algorithm
+            matcher = cv.DescriptorMatcher_create(
+                cv.DescriptorMatcher_BRUTEFORCE_HAMMING)
 
-        print(f"Starting augmentation using the following parameters:")
-        print(detector)
-        print(f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
-        print(f"Lowe's Ratio Threshold: {Augmentation.RATIO_THRESH}")
+            print(f"Starting augmentation using the following parameters:")
+            print(detector)
+            print(f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
+            print(f"Lowe's Ratio Threshold: {Augmentation.RATIO_THRESH}")
 
-        cap = cv.VideoCapture(0)
-        if not cap.isOpened():
-            print("Cannot open camera")
-            exit()
+            cap = cv.VideoCapture(0)
+            if not cap.isOpened():
+                print("Cannot open camera")
+                exit()
 
-        if utils.is_tutorial():
-            self._tutorial_mode_run(cap, films, detector, matcher)
-            return
-
-        while True:
-            # Capture frame-by-frame
-            success, frame = cap.read()
-            # if frame is read correctly ret is True
-            if not success:
-                print("Can't receive frame (stream end?). Exiting ...")
-                break
-
-            gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-
-            for film, poster_img in films:
-                poster_img_gray = cv.cvtColor(poster_img, cv.COLOR_BGR2GRAY)
-
-                # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
-                keypoints_obj = film.keypoints
-                descriptors_obj = film.descriptors
-
-                keypoints_scene, descriptors_scene = detector.detect_and_compute(
-                    gray_frame)
-
-                # Check if any descriptors can be found in the scene
-                if descriptors_scene is None:
-                    continue
-
-                knn_matches = detector.get_matches(
-                    descriptors_obj, descriptors_scene)
-
-                good_matches = self._find_good_matches(knn_matches)
-
-                # Try to localize the object only if matches are above a certain value
-                if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
-                    H, obj_corners = self._find_homography(
-                        poster_img, good_matches, keypoints_obj, keypoints_scene)
-
-                    scene_corners = cv.perspectiveTransform(obj_corners, H)
-
-                    frame = self._display_title(
-                        frame, scene_corners, film.title)
-
-                    frame = self._display_score(
-                        obj_corners, scene_corners, frame, film.score)
-
-            cv.imshow('Augmentation', frame)
-
-            if cv.waitKey(1) == ord('q'):
-                self._stop(cap)
+            if utils.is_tutorial():
+                self._tutorial_mode_run(cap, films, detector, matcher)
                 return
 
-        # When everything done, release the capture
-        self._stop(cap)
+            while True:
+                # Capture frame-by-frame
+                success, frame = cap.read()
+                # if frame is read correctly ret is True
+                if not success:
+                    print("Can't receive frame (stream end?). Exiting ...")
+                    break
+
+                gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+
+                for film, poster_img in films:
+                    poster_img_gray = cv.cvtColor(poster_img, cv.COLOR_BGR2GRAY)
+
+                    # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
+                    keypoints_obj = film.keypoints
+                    descriptors_obj = film.descriptors
+
+                    keypoints_scene, descriptors_scene = detector.detect_and_compute(
+                        gray_frame)
+
+                    # Check if any descriptors can be found in the scene
+                    if descriptors_scene is None:
+                        continue
+
+                    knn_matches = detector.get_matches(
+                        descriptors_obj, descriptors_scene)
+
+                    good_matches = self._find_good_matches(knn_matches)
+
+                    # Try to localize the object only if matches are above a certain value
+                    if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
+                        H, obj_corners = self._find_homography(
+                            poster_img, good_matches, keypoints_obj, keypoints_scene)
+
+                        scene_corners = cv.perspectiveTransform(obj_corners, H)
+
+                        frame = self._display_title(
+                            frame, scene_corners, film.title)
+
+                        frame = self._display_score(
+                            obj_corners, scene_corners, frame, film.score)
+
+                cv.imshow('Augmentation', frame)
+
+                if cv.waitKey(1) == ord('q'):
+                    self._stop(cap)
+                    return
+
+            # When everything done, release the capture
+            self._stop(cap)
+        except AssertionError:
+            pass
 
         # When everything done, release the capture
     def _stop(self, cap):
@@ -260,90 +263,94 @@ class Augmentation:
         return points3d
 
     def _tutorial_mode_run(self, cap, films, detector, matcher):
-        success = None
-        frame = None
-        gray_frame = None
-        print(
-            "Press space while showing the poster to continue")
-        while cv.waitKey(1) != Augmentation.SPACE_KEY:
-            success, frame = cap.read()
-            if not success:
-                print("Can't receive frame (stream end?). Exiting ...")
-                break
-            gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-            cv.imshow('Augmentation', frame)
-
-        for film, poster_img in films:
-            poster_img_gray = cv.cvtColor(poster_img, cv.COLOR_BGR2GRAY)
-
-            # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
+        try:
+            success = None
+            frame = None
+            gray_frame = None
             print(
-                f"Computing keypoints and descriptors for {film.title}...")
-            keypoints_obj = film.keypoints
-            descriptors_obj = film.descriptors
+                "Press space while showing the poster to continue")
+            while cv.waitKey(1) != Augmentation.SPACE_KEY:
+                success, frame = cap.read()
+                if not success:
+                    print("Can't receive frame (stream end?). Exiting ...")
+                    break
+                gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+                cv.imshow('Augmentation', frame)
 
-            keypoints_scene, descriptors_scene = detector.detect_and_compute(
-                gray_frame)
+            for film, poster_img in films:
+                poster_img_gray = cv.cvtColor(poster_img, cv.COLOR_BGR2GRAY)
 
-            cv.drawKeypoints(frame, keypoints_scene, frame, color=(255, 0, 0))
-            print("Detected Keypoints\nPress space to continue")
+                # -- Step 1: Detect the keypoints using ORB Detector, compute the descriptors
+                print(
+                    f"Computing keypoints and descriptors for {film.title}...")
+                keypoints_obj = film.keypoints
+                descriptors_obj = film.descriptors
+
+                keypoints_scene, descriptors_scene = detector.detect_and_compute(
+                    gray_frame)
+
+                cv.drawKeypoints(frame, keypoints_scene, frame, color=(255, 0, 0))
+                print("Detected Keypoints\nPress space to continue")
+                cv.imshow('Augmentation', frame)
+                while(cv.waitKey(1) != Augmentation.SPACE_KEY):
+                    pass
+
+                # Check if any descriptors can be found in the scene
+                if descriptors_scene is None:
+                    continue
+
+                knn_matches = detector.get_matches(
+                    descriptors_obj, descriptors_scene)
+
+                good_matches = self._find_good_matches(knn_matches)
+
+                # Try to localize the object only if matches are above a certain value
+                if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
+                    print(
+                        f"Detected {film.title}'s poster with {len(good_matches)} good matches")
+                    # -- Draw matches
+                    img_matches = np.empty(
+                        (max(poster_img.shape[0], frame.shape[0]), poster_img.shape[1]+frame.shape[1], 3), dtype=np.uint8)
+
+                    cv.drawMatches(poster_img, keypoints_obj, frame, keypoints_scene, good_matches,
+                                img_matches, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+                    print(
+                        f"Matches for the poster {film.title}\nPress space to continue")
+                    cv.imshow('Good Matches', img_matches)
+
+                    while(cv.waitKey(1) != Augmentation.SPACE_KEY):
+                        pass
+
+                    H, obj_corners = self._find_homography(
+                        poster_img, good_matches, keypoints_obj, keypoints_scene)
+
+                    scene_corners = cv.perspectiveTransform(obj_corners, H)
+
+                    print(
+                        f"Found scene corners: {scene_corners}\nPress space to continue")
+
+                    cv.imshow('Augmentation', frame)
+                    while(cv.waitKey(1) != Augmentation.SPACE_KEY):
+                        pass
+                    
+                    frame = self._display_title(frame, scene_corners, film.title)
+
+                    frame = self._display_score(
+                        obj_corners, scene_corners, frame, film.score)
+
+                else:
+                    print(
+                        f"The poster didn't have enough good match with {film.title}\nPress space to continue")
+                    cv.imshow('Augmentation', frame)
+                    while(cv.waitKey(1) != Augmentation.SPACE_KEY):
+                        pass
+
+            print("Press space to finish")
             cv.imshow('Augmentation', frame)
+
             while(cv.waitKey(1) != Augmentation.SPACE_KEY):
-                pass
+                self._stop(cap)
+                return
 
-            # Check if any descriptors can be found in the scene
-            if descriptors_scene is None:
-                continue
-
-            knn_matches = detector.get_matches(
-                descriptors_obj, descriptors_scene)
-
-            good_matches = self._find_good_matches(knn_matches)
-
-            # Try to localize the object only if matches are above a certain value
-            if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
-                print(
-                    f"Detected {film.title}'s poster with {len(good_matches)} good matches")
-                # -- Draw matches
-                img_matches = np.empty(
-                    (max(poster_img.shape[0], frame.shape[0]), poster_img.shape[1]+frame.shape[1], 3), dtype=np.uint8)
-
-                cv.drawMatches(poster_img, keypoints_obj, frame, keypoints_scene, good_matches,
-                               img_matches, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-                print(
-                    f"Matches for the poster {film.title}\nPress space to continue")
-                cv.imshow('Good Matches', img_matches)
-
-                while(cv.waitKey(1) != Augmentation.SPACE_KEY):
-                    pass
-
-                H, obj_corners = self._find_homography(
-                    poster_img, good_matches, keypoints_obj, keypoints_scene)
-
-                scene_corners = cv.perspectiveTransform(obj_corners, H)
-
-                print(
-                    f"Found scene corners: {scene_corners}\nPress space to continue")
-
-                cv.imshow('Augmentation', frame)
-                while(cv.waitKey(1) != Augmentation.SPACE_KEY):
-                    pass
-                
-                frame = self._display_title(frame, scene_corners, film.title)
-
-                frame = self._display_score(
-                    obj_corners, scene_corners, frame, film.score)
-
-            else:
-                print(
-                    f"The poster didn't have enough good match with {film.title}\nPress space to continue")
-                cv.imshow('Augmentation', frame)
-                while(cv.waitKey(1) != Augmentation.SPACE_KEY):
-                    pass
-
-        print("Press space to finish")
-        cv.imshow('Augmentation', frame)
-
-        while(cv.waitKey(1) != Augmentation.SPACE_KEY):
-            self._stop(cap)
-            return
+        except AssertionError:
+            pass
