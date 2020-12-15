@@ -14,9 +14,8 @@ import math
 
 class Augmentation:
 
-    MIN_GOOD_MATCHES = 30
     RATIO_THRESH = 0.75  # Lowe's Ratio
-    CUBE_SIZE = 200
+    CUBE_SIZE = 100
     CUBE_Z_OFFSET = 50
     SPACE_KEY = 32
 
@@ -41,8 +40,9 @@ class Augmentation:
 
         print(f"Starting augmentation using the following parameters:")
         print(detector)
-        print(f"Minimum Good Matches: {Augmentation.MIN_GOOD_MATCHES}")
+        print(f"Minimum Good Matches: {detector.min_good_matches}")
         print(f"Lowe's Ratio Threshold: {Augmentation.RATIO_THRESH}")
+        print("Using solvePnPRansac" if options.use_solvePnpRansac else "Using solvePnP")
 
         cap = cv.VideoCapture(0)
         if not cap.isOpened():
@@ -85,7 +85,7 @@ class Augmentation:
                     good_matches = self._find_good_matches(knn_matches)
 
                     # Try to localize the object only if matches are above a certain value
-                    if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
+                    if len(good_matches) >= detector.min_good_matches:
                         H, obj_corners = self._find_homography(
                             poster_img, good_matches, keypoints_obj, keypoints_scene)
 
@@ -220,8 +220,16 @@ class Augmentation:
         Here we convert the object's corner's coordinates to 3d points and we assume z = 0
         Since solvePnP expects 3d points
         """
-        ret, rvecs, tvecs = cv.solvePnP(
-            self._to_3d_points(obj_corners), scene_corners, self.camera_params.mtx, self.camera_params.dist)
+        if (Options().use_solvePnpRansac):
+            _, rvecs, tvecs, inliers = cv.solvePnPRansac(
+                self._to_3d_points(obj_corners), scene_corners, self.camera_params.mtx, self.camera_params.dist, 
+                useExtrinsicGuess=True, iterationsCount=300, reprojectionError=3.0)
+                
+            if (inliers is None or len(inliers) < 4):
+                return frame
+        else:
+             _, rvecs, tvecs = cv.solvePnP(
+                self._to_3d_points(obj_corners), scene_corners, self.camera_params.mtx, self.camera_params.dist)
 
         return self._draw_cubes(frame, x_offset, y_offset, score, rvecs, tvecs)
 
@@ -309,7 +317,7 @@ class Augmentation:
             good_matches = self._find_good_matches(knn_matches)
 
             # Try to localize the object only if matches are above a certain value
-            if len(good_matches) >= Augmentation.MIN_GOOD_MATCHES:
+            if len(good_matches) >= detector.min_good_matches:
                 print(
                     f"Detected {film.title}'s poster with {len(good_matches)} good matches")
                 # -- Draw matches

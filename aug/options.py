@@ -10,6 +10,7 @@ class Options(object):
 
             cls._instance.tutorial_mode = False
             cls._instance.algorithm = ORB()
+            cls._instance.use_solvePnpRansac = True
 
         return cls._instance
 
@@ -19,3 +20,6 @@ class Options(object):
     def change_algorithm(self, algorithm):
         self.algorithm = algorithm
         Database().recompute_features()
+
+    def enable_solvePnpRansac(self, use):
+        self.use_solvePnpRansac = use

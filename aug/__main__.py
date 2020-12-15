@@ -25,8 +25,13 @@ change_detector_menu.add_item(surf_menu_item)
 change_detector_menu.add_item(orb_menu_item)
 change_detector_menu.add_item(brief_menu_item)
 
+disable_ransac_menu_item = FunctionItem("Use solvePnp", options.enable_solvePnpRansac, [False])
+enable_ransac_menu_item = FunctionItem("Use solvePnpRansac", options.enable_solvePnpRansac, [True])
+
 options_menu.add_menu(change_mode_menu)
 options_menu.add_menu(change_detector_menu)
+options_menu.add_item(disable_ransac_menu_item)
+options_menu.add_item(enable_ransac_menu_item)
 
 main_menu = Menu("Main Menu")
 aug_menu_item = FunctionItem("Poster Augmentation", aug.start)
