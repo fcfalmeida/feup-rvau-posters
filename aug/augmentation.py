@@ -65,20 +65,21 @@ class Augmentation:
                 # Convert the frame intro grayscale so that it can be processed
                 gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
+                # Detect the keypoints and compute the descriptors
+                keypoints_scene, descriptors_scene = detector.detect_and_compute(
+                        gray_frame)
+
+                # Check if any descriptors can be found in the scene
+                if descriptors_scene is None:
+                    continue
+
                 for film, poster_img in films:
                     poster_img_gray = cv.cvtColor(
                         poster_img, cv.COLOR_BGR2GRAY)
 
-                    # Detect the keypoints and compute the descriptors
+                    # Grab the poster's keypoints and descriptors
                     keypoints_obj = film.keypoints
                     descriptors_obj = film.descriptors
-
-                    keypoints_scene, descriptors_scene = detector.detect_and_compute(
-                        gray_frame)
-
-                    # Check if any descriptors can be found in the scene
-                    if descriptors_scene is None:
-                        continue
 
                     # Find matches between the descriptors of the poster image and the frame
                     knn_matches = detector.get_matches(
